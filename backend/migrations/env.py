@@ -34,9 +34,18 @@ else:
     import os
     database_url = os.environ.get("DATABASE_URL") or settings.DATABASE_URL
 
-# Normaliza postgres:// para postgresql:// (padrão de provedores cloud)
-if database_url and database_url.startswith("postgres://"):
-    database_url = database_url.replace("postgres://", "postgresql://", 1)
+# Normaliza postgres:// para postgresql:// e codifica caracteres como @ na senha
+if database_url and isinstance(database_url, str):
+    database_url = database_url.strip()
+    if database_url.startswith("postgres://"):
+        database_url = database_url.replace("postgres://", "postgresql://", 1)
+    import re, urllib.parse
+    match = re.match(r'^(postgresql(?:\+[a-z0-9]+)?://)([^:]+):(.*)@([^/@:]+(?::\d+)?(?:/.*)?)$', database_url)
+    if match:
+        scheme, user, raw_pwd, rest = match.groups()
+        decoded_pwd = urllib.parse.unquote(raw_pwd)
+        quoted_pwd = urllib.parse.quote(decoded_pwd, safe="")
+        database_url = f"{scheme}{user}:{quoted_pwd}@{rest}"
 
 config.set_main_option("sqlalchemy.url", database_url)
 

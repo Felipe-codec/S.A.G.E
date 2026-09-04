@@ -69,9 +69,17 @@ class Settings(BaseSettings):
     @classmethod
     def assemble_db_connection(cls, v: str) -> str:
         if isinstance(v, str):
-            # Render e Supabase podem retornar postgres:// em vez de postgresql://
+            v = v.strip()
             if v.startswith("postgres://"):
                 v = v.replace("postgres://", "postgresql://", 1)
+            # Codifica caracteres especiais como '@' na senha para evitar quebra no parser de host
+            import re, urllib.parse
+            match = re.match(r'^(postgresql(?:\+[a-z0-9]+)?://)([^:]+):(.*)@([^/@:]+(?::\d+)?(?:/.*)?)$', v)
+            if match:
+                scheme, user, raw_pwd, rest = match.groups()
+                decoded_pwd = urllib.parse.unquote(raw_pwd)
+                quoted_pwd = urllib.parse.quote(decoded_pwd, safe="")
+                v = f"{scheme}{user}:{quoted_pwd}@{rest}"
         return v
 
     @field_validator("CORS_ORIGINS", mode="after")

@@ -44,3 +44,14 @@ def test_production_environment_rejects_localhost_db():
     with pytest.raises(ValueError) as exc:
         settings_local_db.validate_production_security()
     assert "DATABASE_URL" in str(exc.value)
+
+
+def test_database_url_with_at_symbol_in_password():
+    """Valida que senhas com @ (como MinhaSenha@2026) sejam codificadas automaticamente para %40."""
+    raw_db_url = "postgresql://postgres.myproject:MinhaSenha@2026@aws-0-sa-east-1.pooler.supabase.com:6543/postgres?sslmode=require"
+    s = Settings(
+        APP_ENV="development",
+        DATABASE_URL=raw_db_url,
+    )
+    assert "%402026@" in s.DATABASE_URL
+    assert "MinhaSenha%402026@aws-0-sa-east-1" in s.DATABASE_URL
