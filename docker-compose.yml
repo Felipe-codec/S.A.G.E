@@ -1,0 +1,82 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: steam_guard_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespassword
+      POSTGRES_DB: steam_guard_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d steam_guard_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: steam_guard_redis
+    restart: unless-stopped
+    profiles:
+      - redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: steam_guard_backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      APP_ENV: development
+      PORT: 8000
+      DATABASE_URL: postgresql://postgres:postgrespassword@postgres:5432/steam_guard_db
+      JWT_SECRET: dev-secret-jwt-key-for-local-testing-only-123456
+      MASTER_ENCRYPTION_KEY: dGhpcy1pcy1hLXNhbXBsZS1mZXJuZXQta2V5LTEyMzQ1Njc4OTA=
+      CORS_ORIGINS: http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173
+      FRONTEND_URL: http://localhost:5173
+      IMAP_TIMEOUT: 5
+      CODE_POLL_INTERVAL: 2
+      CODE_POLL_TIMEOUT: 15
+      RATE_LIMIT: 120/minute
+      TOKEN_DEFAULT_EXPIRATION: 3600
+      REDIS_URL: ""
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    command: ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"]
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: steam_guard_frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      VITE_API_URL: http://localhost:8000
+    ports:
+      - "5173:80"
+
+volumes:
+  postgres_data:
+  redis_data:
