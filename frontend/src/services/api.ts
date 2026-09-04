@@ -19,16 +19,19 @@ function getAuthHeader(): Record<string, string> {
 
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const url = `${BASE_URL}${endpoint}`;
-  const headers = {
-    'Content-Type': 'application/json',
+  const headers: Record<string, string> = {
     ...getAuthHeader(),
-    ...(options.headers || {}),
+    ...((options.headers as Record<string, string>) || {}),
   };
+
+  // Só define Content-Type application/json se houver corpo na requisição
+  if (options.body && !headers['Content-Type']) {
+    headers['Content-Type'] = 'application/json';
+  }
 
   const response = await fetch(url, {
     ...options,
     headers,
-    credentials: 'include', // Envia cookies seguros se configurados
   });
 
   if (!response.ok) {
