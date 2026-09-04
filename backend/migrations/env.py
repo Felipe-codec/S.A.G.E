@@ -47,7 +47,9 @@ if database_url and isinstance(database_url, str):
         quoted_pwd = urllib.parse.quote(decoded_pwd, safe="")
         database_url = f"{scheme}{user}:{quoted_pwd}@{rest}"
 
-config.set_main_option("sqlalchemy.url", database_url)
+# No configparser do Alembic, o '%' deve ser escapado como '%%' para não disparar erro de interpolação
+escaped_url = database_url.replace("%", "%%")
+config.set_main_option("sqlalchemy.url", escaped_url)
 
 
 def run_migrations_offline() -> None:

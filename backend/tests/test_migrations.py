@@ -64,3 +64,19 @@ def test_alembic_migrations_upgrade_and_indexes():
                 db_file.unlink()
             except Exception:
                 pass
+
+
+def test_alembic_env_handles_percent_in_database_url(monkeypatch):
+    """Garante que DATABASE_URL contendo %40 (como steambd%402026) não cause erro de interpolação no configparser."""
+    from alembic.config import Config
+    ini_path = Path(__file__).resolve().parent.parent / "alembic.ini"
+    alembic_cfg = Config(str(ini_path))
+
+    test_url = "postgresql://postgres.user:steambd%402026@aws-0-sa-east-1.pooler.supabase.com:6543/postgres"
+    monkeypatch.setenv("DATABASE_URL", test_url)
+
+    escaped_url = test_url.replace("%", "%%")
+    alembic_cfg.set_main_option("sqlalchemy.url", escaped_url)
+
+    read_url = alembic_cfg.get_main_option("sqlalchemy.url")
+    assert read_url == test_url
