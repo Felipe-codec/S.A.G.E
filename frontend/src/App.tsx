@@ -4,6 +4,7 @@ import { ResgatePage } from './pages/ResgatePage';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { NotFound } from './pages/NotFound';
+import { HealthStatus } from './pages/HealthStatus';
 import { api } from './services/api';
 import { Seller } from './types';
 
@@ -76,6 +77,10 @@ export const App: React.FC = () => {
         return <Login onLoginSuccess={(u) => setSeller(u)} navigate={navigate} />;
       }
       return <Dashboard seller={seller} navigate={navigate} />;
+    }
+
+    if (currentPath === '/health' || currentPath === '/health/ready') {
+      return <HealthStatus navigate={navigate} />;
     }
 
     return <NotFound navigate={navigate} />;
