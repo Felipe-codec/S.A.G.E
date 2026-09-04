@@ -24,14 +24,26 @@ if config.config_file_name is not None:
 # Define o target_metadata para suporte a autogenerate
 target_metadata = Base.metadata
 
-# Define a URL do banco a partir da variável de ambiente caso não tenha sido passada explicitamente
-if not config.get_main_option("sqlalchemy.url"):
-    config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+# Determina a URL correta para o Alembic:
+# 1. Se o config já tiver uma URL customizada passada explicitamente (ex: testes com sqlite)
+# 2. Caso contrário, utiliza DATABASE_URL do ambiente ou settings.DATABASE_URL
+cfg_url = config.get_main_option("sqlalchemy.url")
+if cfg_url and ("sqlite" in cfg_url or ":memory:" in cfg_url):
+    database_url = cfg_url
+else:
+    import os
+    database_url = os.environ.get("DATABASE_URL") or settings.DATABASE_URL
+
+# Normaliza postgres:// para postgresql:// (padrão de provedores cloud)
+if database_url and database_url.startswith("postgres://"):
+    database_url = database_url.replace("postgres://", "postgresql://", 1)
+
+config.set_main_option("sqlalchemy.url", database_url)
 
 
 def run_migrations_offline() -> None:
     """Executa migrações no modo 'offline' sem abrir conexão real."""
-    url = config.get_main_option("sqlalchemy.url") or settings.DATABASE_URL
+    url = config.get_main_option("sqlalchemy.url") or database_url
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -45,7 +57,7 @@ def run_migrations_offline() -> None:
 
 def run_migrations_online() -> None:
     """Executa migrações no modo 'online' conectando ao banco de dados."""
-    url = config.get_main_option("sqlalchemy.url") or settings.DATABASE_URL
+    url = config.get_main_option("sqlalchemy.url") or database_url
     configuration = config.get_section(config.config_ini_section) or {}
     configuration["sqlalchemy.url"] = url
 
