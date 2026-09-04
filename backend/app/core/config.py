@@ -82,21 +82,39 @@ class Settings(BaseSettings):
                 v = f"{scheme}{user}:{quoted_pwd}@{rest}"
         return v
 
+    @field_validator("FRONTEND_URL", mode="after")
+    @classmethod
+    def clean_frontend_url(cls, v: str) -> str:
+        if isinstance(v, str):
+            return v.strip().rstrip("/")
+        return v
+
     @field_validator("CORS_ORIGINS", mode="after")
     @classmethod
     def parse_cors_origins(cls, v: object) -> List[str]:
+        raw_list: List[str] = []
         if isinstance(v, str):
             v = v.strip()
             if v.startswith("[") and v.endswith("]"):
                 import json
                 try:
-                    return [item.strip() for item in json.loads(v)]
+                    raw_list = [str(item).strip() for item in json.loads(v)]
                 except Exception:
-                    pass
-            return [orig.strip() for orig in v.split(",") if orig.strip()]
+                    raw_list = [orig.strip() for orig in v.split(",") if orig.strip()]
+            else:
+                raw_list = [orig.strip() for orig in v.split(",") if orig.strip()]
         elif isinstance(v, list):
-            return [str(item).strip() for item in v if str(item).strip()]
-        return ["http://localhost:5173"]
+            raw_list = [str(item).strip() for item in v if str(item).strip()]
+        else:
+            return ["http://localhost:5173"]
+
+        origins_set = set()
+        for item in raw_list:
+            clean = item.strip().strip("'\"").rstrip("/")
+            if clean:
+                origins_set.add(clean)
+                origins_set.add(clean + "/")
+        return list(origins_set) if origins_set else ["http://localhost:5173"]
 
     def validate_production_security(self) -> None:
         """Valida que configurações inseguras não sejam utilizadas em ambiente de produção."""

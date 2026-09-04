@@ -181,6 +181,29 @@ export const HealthStatus: React.FC<HealthStatusProps> = ({ navigate }) => {
           </div>
         </div>
 
+        {/* Detalhes de Erro se houver */}
+        {error && (
+          <div
+            style={{
+              background: 'rgba(239, 68, 68, 0.1)',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              borderRadius: 'var(--radius-sm)',
+              padding: '14px',
+              marginBottom: '20px',
+              fontSize: '0.82rem',
+              color: '#fca5a5',
+            }}
+          >
+            <div style={{ fontWeight: 600, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <AlertTriangle size={15} color="var(--color-error)" /> Motivo da Falha:
+            </div>
+            <div>{error}</div>
+            <div style={{ marginTop: '8px', color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+              Dica: Certifique-se de que a variável CORS_ORIGINS no Render está exatamente sem barra no final: <code>https://s-a-g-e-kappa.vercel.app</code>
+            </div>
+          </div>
+        )}
+
         {/* Botão de Teste */}
         <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
           <button onClick={checkStatus} disabled={isLoading} className="btn-primary" style={{ padding: '10px 20px' }}>
